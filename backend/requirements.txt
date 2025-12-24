@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+celery==5.3.6
+redis
+python-multipart
+pillow
+numpy
+requests
+slowapi
+python-magic
