@@ -14,9 +14,15 @@ from slowapi.errors import RateLimitExceeded
 
 # Infrastructure Setup
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Global 404 Redirect
+@app.exception_handler(404)
+async def custom_404_handler(request, __):
+    return RedirectResponse(url="https://stegsik.xyz")
+
 
 # Security Constants
 MAX_IMAGE_SIZE = 50 * 1024 * 1024      # 50MB
@@ -28,7 +34,10 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://stegsik.xyz",
+    "http://103.31.205.111",
+    "*"  # Allow all for troubleshooting
 ]
 
 app.add_middleware(
@@ -276,7 +285,8 @@ async def get_result(task_id: str):
         return {"status": "completed", "result": task_result.result}
     return {"status": "processing"}
 
-from fastapi.responses import FileResponse
+
+from fastapi.responses import FileResponse, RedirectResponse
 
 @app.get("/download/{file_path:path}")
 async def download_file(file_path: str):
@@ -290,6 +300,12 @@ async def download_file(file_path: str):
     
     # Force download with attachment
     return FileResponse(full_path, media_type='application/octet-stream', filename=os.path.basename(file_path))
+
+# Root Redirect
+@app.get("/")
+def read_root():
+    return RedirectResponse(url="https://stegsik.xyz")
+
 
 # --- ADVANCED STEGANOGRAPHY ENDPOINTS ---
 from advanced_steg import custom_inject, solve_custom_steg, DEFAULT_INTERVAL, DEFAULT_START_OFFSET
@@ -402,6 +418,4 @@ async def advanced_recover(
          return {"status": "error", "message": f"Recovery failed: {str(e)}"}
 
 
-@app.get("/")
-def read_root():
-    return {"message": "Stegsik Backend is running"}
+

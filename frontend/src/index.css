@@ -12,6 +12,12 @@
   /* Slate 800 */
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: var(--font-family);
@@ -139,4 +145,48 @@ button:focus-visible {
   overflow-x: auto;
   text-align: left;
   font-family: monospace;
+}
+
+/* RESPONSIVE STYLES */
+@media (max-width: 1024px) {
+  .container {
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .main-page-header {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .upload-card {
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Utility to stack flex items on mobile */
+  .flex-stack-mobile {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  /* Utility to make items full width on mobile */
+  .w-full-mobile {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  /* Adjust Grid Columns */
+  .result-section button,
+  .result-section .download-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

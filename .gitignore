@@ -19,6 +19,18 @@ backend/wordlist.txt
 *.log
 .gemini/
 
-# OS
+
+# IDEs
+.vscode/
+.idea/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# System
 .DS_Store
 Thumbs.db
+.agent/
+
+

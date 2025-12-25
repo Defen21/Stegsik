@@ -27,7 +27,7 @@ function App() {
     const [embedType, setEmbedType] = useState<'text' | 'file'>('text')
     const [embedText, setEmbedText] = useState('')
     const [embedFile, setEmbedFile] = useState<File | null>(null)
-    const [embedMode, setEmbedMode] = useState<'embed' | 'extract'>('embed')
+
     const [useEmbedPassword, setUseEmbedPassword] = useState(false)
     const [embedPassword, setEmbedPassword] = useState('')
     const [extractFile, setExtractFile] = useState<File | null>(null)
@@ -36,6 +36,7 @@ function App() {
     const [embedResult, setEmbedResult] = useState<string | null>(null)
     const [embedSuccessMsg, setEmbedSuccessMsg] = useState<string | null>(null)
     const [embedError, setEmbedError] = useState<string | null>(null)
+    const [embedFilename, setEmbedFilename] = useState<string | null>(null)
 
     // Advanced Stego State
     const [advAction, setAdvAction] = useState<'hide' | 'recover'>('hide')
@@ -59,6 +60,13 @@ function App() {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload)
     }, [])
 
+    // Auto-redirect unknown paths to root
+    React.useEffect(() => {
+        if (window.location.pathname !== '/') {
+            window.location.replace('/');
+        }
+    }, [])
+
 
 
     const handleEmbed = async () => {
@@ -67,6 +75,7 @@ function App() {
         setEmbedLoading(true)
         setEmbedError(null)
         setEmbedResult(null)
+        setEmbedFilename(null)
 
         const formData = new FormData()
         formData.append('cover', embedCover)
@@ -84,6 +93,11 @@ function App() {
                 setEmbedLoading(false)
                 return
             }
+            if (!embedFile.name.endsWith('.zip') && embedFile.type !== 'application/zip' && embedFile.type !== 'application/x-zip-compressed') {
+                setEmbedError("Only .zip files are allowed for payload")
+                setEmbedLoading(false)
+                return
+            }
             formData.append('payload_file', embedFile)
         }
 
@@ -96,6 +110,7 @@ function App() {
 
             if (response.data.status === 'success') {
                 setEmbedResult(response.data.download_url)
+                setEmbedFilename(response.data.filename)
                 setEmbedSuccessMsg(response.data.message)
             } else {
                 setEmbedError(response.data.message || 'Embedding failed')
@@ -114,6 +129,7 @@ function App() {
         setEmbedLoading(true)
         setEmbedError(null)
         setEmbedResult(null)
+        setEmbedFilename(null)
 
         const formData = new FormData()
         formData.append('file', extractFile)
@@ -127,6 +143,7 @@ function App() {
 
             if (response.data.status === 'success') {
                 setEmbedResult(response.data.download_url)
+                setEmbedFilename(response.data.filename)
                 setEmbedSuccessMsg(response.data.message)
             } else {
                 setEmbedError(response.data.message || 'Extraction failed')
@@ -336,7 +353,7 @@ function App() {
 
     return (
         <div className="container">
-            <div className="header">
+            <div className="header main-page-header">
                 <h1 className="title">Stegsik</h1>
                 <p style={{ color: '#94a3b8', marginTop: '0.5rem' }}>Forensic Image Analysis Tool</p>
             </div>
@@ -403,10 +420,11 @@ function App() {
 
                     {/* Bit Planes Section */}
                     <div className="result-section">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h3>Bit Planes</h3>
+                        <div className="flex-stack-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0 }}>Bit Planes</h3>
                             {result.images_zip && (
                                 <button
+                                    className="w-full-mobile"
                                     onClick={() => handleDownload(`${API_URL}/download/${result.images_zip}`, 'bitplanes.zip')}
                                     style={{
                                         padding: '0.5rem 1rem',
@@ -418,11 +436,12 @@ function App() {
                                         fontWeight: 500,
                                         display: 'flex',
                                         alignItems: 'center',
+                                        justifyContent: 'center',
                                         gap: '6px',
                                         cursor: 'pointer'
                                     }}
                                 >
-                                    <Upload style={{ transform: 'rotate(180deg)' }} size={16} /> Download All Images (.zip)
+                                    <Upload style={{ transform: 'rotate(180deg)' }} size={16} /> Download ZIP
                                 </button>
                             )}
                         </div>
@@ -477,12 +496,12 @@ function App() {
                         <h3>Forensic Tool Reports</h3>
                         {result.tool_outputs && Object.entries(result.tool_outputs).map(([toolName, output]: [string, any]) => (
                             <div key={toolName} style={{ marginBottom: '1.5rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <div className="flex-stack-mobile" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                                     <h4 style={{ margin: 0, textTransform: 'capitalize' }}>{toolName}</h4>
                                     {output.file_path && !output.file_path.endsWith('.log') && (
                                         <button
                                             onClick={() => handleDownload(`${API_URL}/download/${output.file_path}`, output.file_path.split('/').pop() || 'output')}
-                                            className="download-btn"
+                                            className="download-btn w-full-mobile"
                                             style={{
                                                 padding: '0.4rem 0.8rem',
                                                 background: '#334155',
@@ -492,10 +511,11 @@ function App() {
                                                 fontSize: '0.9rem',
                                                 cursor: 'pointer',
                                                 display: 'flex',
-                                                alignItems: 'center'
+                                                alignItems: 'center',
+                                                justifyContent: 'center'
                                             }}
                                         >
-                                            <Download size={14} style={{ marginRight: '6px' }} /> Download Output
+                                            <Download size={14} style={{ marginRight: '6px' }} /> Download
                                         </button>
                                     )}
                                 </div>
@@ -571,8 +591,8 @@ function App() {
                     </div>
 
                     {/* Height Control */}
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'stretch', flexWrap: 'wrap' }}>
-                        <div style={{ position: 'relative', flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center' }}>
+                    <div className="flex-stack-mobile" style={{ display: 'flex', gap: '1rem', alignItems: 'stretch', flexWrap: 'wrap' }}>
+                        <div className="w-full-mobile" style={{ position: 'relative', flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center' }}>
                             <input
                                 type="number"
                                 placeholder="New Height (px)"
@@ -629,10 +649,11 @@ function App() {
                         </div>
 
                         <button
+                            className="w-full-mobile"
                             onClick={handlePatch}
                             disabled={!patchFile || !patchHeight || patchLoading}
                             style={{
-                                padding: '0 1.5rem',
+                                padding: '1rem',
                                 background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
                                 borderRadius: '8px',
                                 fontWeight: 600,
@@ -776,7 +797,7 @@ function App() {
                             }}
                         />
 
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div className="flex-stack-mobile" style={{ display: 'flex', gap: '1rem' }}>
                             <button
                                 onClick={() => handleEncryptionAction('encrypt')}
                                 disabled={!encryptFile || !encryptPassword || encryptLoading}
@@ -871,247 +892,149 @@ function App() {
                     <p style={{ color: '#94a3b8', marginTop: '0.5rem' }}>Hide files/text inside an image, or extract hidden data.</p>
                 </div>
 
-                <div style={{
-                    display: 'flex',
-                    background: '#0f172a',
-                    padding: '0.4rem',
-                    borderRadius: '12px',
-                    marginTop: '1.5rem',
-                    border: '1px solid #334155'
-                }}>
-                    <button
-                        onClick={() => { setEmbedMode('embed'); setEmbedResult(null); setEmbedError(null); }}
-                        style={{
-                            flex: 1,
-                            padding: '0.8rem',
-                            background: embedMode === 'embed' ? '#fbbf24' : 'transparent',
-                            color: embedMode === 'embed' ? '#0f172a' : '#94a3b8',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease'
-                        }}
-                    >
-                        Embed (Hide)
-                    </button>
-                    <button
-                        onClick={() => { setEmbedMode('extract'); setEmbedResult(null); setEmbedError(null); }}
-                        style={{
-                            flex: 1,
-                            padding: '0.8rem',
-                            background: embedMode === 'extract' ? '#fbbf24' : 'transparent',
-                            color: embedMode === 'extract' ? '#0f172a' : '#94a3b8',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease'
-                        }}
-                    >
-                        Extract (Recover)
-                    </button>
-                </div>
+
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1.5rem' }}>
 
-                    {/* EMBED MODE */}
-                    {embedMode === 'embed' && (
-                        <>
-                            {/* Cover Image */}
-                            <div
-                                onClick={() => document.getElementById('embedCoverInput')?.click()}
-                                style={{
-                                    border: '2px dashed #475569',
-                                    borderRadius: '12px',
-                                    padding: '1.5rem',
-                                    textAlign: 'center',
-                                    cursor: 'pointer',
-                                    background: '#1e293b',
-                                    transition: 'all 0.2s',
+                    {/* EMBED MODE - Always visible now */}
+                    <>
+                        {/* Cover Image */}
+                        <div
+                            onClick={() => document.getElementById('embedCoverInput')?.click()}
+                            style={{
+                                border: '2px dashed #475569',
+                                borderRadius: '12px',
+                                padding: '1.5rem',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                background: '#1e293b',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            <input
+                                id="embedCoverInput"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                        setEmbedCover(e.target.files[0])
+                                        setEmbedResult(null)
+                                    }
                                 }}
-                            >
-                                <input
-                                    id="embedCoverInput"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        if (e.target.files?.[0]) {
-                                            setEmbedCover(e.target.files[0])
-                                            setEmbedResult(null)
-                                        }
-                                    }}
-                                    style={{ display: 'none' }}
-                                />
-                                {embedCover ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                                        <Image size={24} color="#fbbf24" />
-                                        <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{embedCover.name}</span>
-                                    </div>
-                                ) : (
-                                    <div style={{ color: '#cbd5e1' }}>
-                                        <p style={{ fontWeight: 500 }}>Select Cover Image</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Payload Type Selection */}
-                            <div style={{ display: 'flex', gap: '1rem' }}>
-                                <button
-                                    onClick={() => setEmbedType('text')}
-                                    style={{
-                                        flex: 1,
-                                        background: embedType === 'text' ? '#fbbf24' : '#334155',
-                                        color: embedType === 'text' ? '#1e293b' : '#cbd5e1',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '0.5rem'
-                                    }}
-                                >
-                                    Text Payload
-                                </button>
-                                <button
-                                    onClick={() => setEmbedType('file')}
-                                    style={{
-                                        flex: 1,
-                                        background: embedType === 'file' ? '#fbbf24' : '#334155',
-                                        color: embedType === 'file' ? '#1e293b' : '#cbd5e1',
-                                        border: 'none',
-                                        borderRadius: '6px',
-                                        padding: '0.5rem'
-                                    }}
-                                >
-                                    File Payload
-                                </button>
-                            </div>
-
-                            {/* Payload Input */}
-                            {embedType === 'text' ? (
-                                <textarea
-                                    placeholder="Enter secret text to hide..."
-                                    value={embedText}
-                                    onChange={(e) => setEmbedText(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '0.8rem',
-                                        borderRadius: '8px',
-                                        border: '1px solid #475569',
-                                        background: '#1e293b',
-                                        color: 'white',
-                                        minHeight: '100px',
-                                        fontFamily: 'monospace'
-                                    }}
-                                />
+                                style={{ display: 'none' }}
+                            />
+                            {embedCover ? (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+                                    <Image size={24} color="#fbbf24" />
+                                    <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{embedCover.name}</span>
+                                </div>
                             ) : (
-                                <div
-                                    onClick={() => document.getElementById('embedPayloadInput')?.click()}
-                                    style={{
-                                        border: '1px solid #475569',
-                                        borderRadius: '8px',
-                                        padding: '1rem',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        background: '#1e293b'
-                                    }}
-                                >
-                                    <input
-                                        id="embedPayloadInput"
-                                        type="file"
-                                        onChange={(e) => {
-                                            if (e.target.files?.[0]) setEmbedFile(e.target.files[0])
-                                        }}
-                                        style={{ display: 'none' }}
-                                    />
-                                    {embedFile ? (
-                                        <p style={{ color: '#fbbf24' }}>Selected: {embedFile.name}</p>
-                                    ) : (
-                                        <p style={{ color: '#94a3b8' }}>Click to select secret file (Zip, PDF, etc)</p>
-                                    )}
+                                <div style={{ color: '#cbd5e1' }}>
+                                    <p style={{ fontWeight: 500 }}>Select Cover Image</p>
                                 </div>
                             )}
+                        </div>
 
-                            {/* Password Option */}
-                            {/* Password Option Removed */}
-
+                        {/* Payload Type Selection */}
+                        <div className="flex-stack-mobile" style={{ display: 'flex', gap: '1rem' }}>
                             <button
-                                onClick={handleEmbed}
-                                disabled={!embedCover || (embedType === 'text' ? !embedText : !embedFile) || embedLoading}
+                                onClick={() => setEmbedType('text')}
                                 style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    background: '#d97706',
-                                    color: 'white',
-                                    fontWeight: 'bold',
-                                    opacity: !embedCover || embedLoading ? 0.7 : 1,
-                                    cursor: 'pointer',
-                                    borderRadius: '8px',
-                                    border: 'none'
+                                    flex: 1,
+                                    background: embedType === 'text' ? '#fbbf24' : '#334155',
+                                    color: embedType === 'text' ? '#1e293b' : '#cbd5e1',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0.5rem'
                                 }}
                             >
-                                {embedLoading ? 'Embedding...' : 'Embed Data'}
+                                Text Payload
                             </button>
-                        </>
-                    )}
-
-                    {/* EXTRACT MODE */}
-                    {embedMode === 'extract' && (
-                        <>
-                            <div
-                                onClick={() => document.getElementById('extractFileInput')?.click()}
+                            <button
+                                onClick={() => setEmbedType('file')}
                                 style={{
-                                    border: '2px dashed #475569',
-                                    borderRadius: '12px',
-                                    padding: '1.5rem',
+                                    flex: 1,
+                                    background: embedType === 'file' ? '#fbbf24' : '#334155',
+                                    color: embedType === 'file' ? '#1e293b' : '#cbd5e1',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0.5rem'
+                                }}
+                            >
+                                File Payload
+                            </button>
+                        </div>
+
+                        {/* Payload Input */}
+                        {embedType === 'text' ? (
+                            <textarea
+                                placeholder="Enter secret text to hide..."
+                                value={embedText}
+                                onChange={(e) => setEmbedText(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.8rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #475569',
+                                    background: '#1e293b',
+                                    color: 'white',
+                                    minHeight: '100px',
+                                    fontFamily: 'monospace'
+                                }}
+                            />
+                        ) : (
+                            <div
+                                onClick={() => document.getElementById('embedPayloadInput')?.click()}
+                                style={{
+                                    border: '1px solid #475569',
+                                    borderRadius: '8px',
+                                    padding: '1rem',
                                     textAlign: 'center',
                                     cursor: 'pointer',
-                                    background: '#1e293b',
-                                    transition: 'all 0.2s',
+                                    background: '#1e293b'
                                 }}
                             >
                                 <input
-                                    id="extractFileInput"
+                                    id="embedPayloadInput"
                                     type="file"
+                                    accept=".zip,application/zip,application/x-zip-compressed"
                                     onChange={(e) => {
-                                        if (e.target.files?.[0]) {
-                                            setExtractFile(e.target.files[0])
-                                            setEmbedResult(null)
-                                        }
+                                        if (e.target.files?.[0]) setEmbedFile(e.target.files[0])
                                     }}
                                     style={{ display: 'none' }}
                                 />
-                                {extractFile ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                                        <FileText size={24} color="#fbbf24" />
-                                        <span style={{ fontWeight: 600, color: '#e2e8f0' }}>{extractFile.name}</span>
-                                    </div>
+                                {embedFile ? (
+                                    <p style={{ color: '#fbbf24' }}>Selected: {embedFile.name}</p>
                                 ) : (
-                                    <div style={{ color: '#cbd5e1' }}>
-                                        <p style={{ fontWeight: 500 }}>Select Stego Image</p>
-                                    </div>
+                                    <p style={{ color: '#94a3b8' }}>Click to select secret file (Zip only)</p>
                                 )}
                             </div>
+                        )}
 
-                            {/* Extract Password Input Removed */}
+                        {/* Password Option */}
+                        {/* Password Option Removed */}
 
-                            <button
-                                onClick={handleExtract}
-                                disabled={!extractFile || embedLoading}
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem',
-                                    background: '#059669',
-                                    color: 'white',
-                                    fontWeight: 'bold',
-                                    opacity: !extractFile || embedLoading ? 0.7 : 1,
-                                    cursor: 'pointer',
-                                    borderRadius: '8px',
-                                    border: 'none'
-                                }}
-                            >
-                                {embedLoading ? 'Extracting...' : 'Extract Data'}
-                            </button>
-                        </>
-                    )}
+                        <button
+                            onClick={handleEmbed}
+                            disabled={!embedCover || (embedType === 'text' ? !embedText : !embedFile) || embedLoading}
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                background: '#d97706',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                opacity: !embedCover || embedLoading ? 0.7 : 1,
+                                cursor: 'pointer',
+                                borderRadius: '8px',
+                                border: 'none'
+                            }}
+                        >
+                            {embedLoading ? 'Embedding...' : 'Embed Data'}
+                        </button>
+                    </>
+
+
+
 
                     {embedError && (
                         <div style={{ background: '#450a0a', border: '1px solid #f87171', padding: '1rem', borderRadius: '8px', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1128,7 +1051,7 @@ function App() {
                             <p style={{ color: '#cbd5e1', fontSize: '0.9rem', marginBottom: '1rem' }}>{embedSuccessMsg}</p>
 
                             <button
-                                onClick={() => handleDownload(`${API_URL}/${embedResult}`, `steg_result.bin`)}
+                                onClick={() => handleDownload(`${API_URL}/${embedResult}`, embedFilename || `steg_result.bin`)}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -1158,7 +1081,7 @@ function App() {
                 </div>
 
 
-                <div style={{
+                <div className="flex-stack-mobile" style={{
                     display: 'flex',
                     background: '#0f172a',
                     padding: '0.4rem',
@@ -1287,14 +1210,14 @@ function App() {
                                     border: '1px solid #475569',
                                     background: '#0f172a',
                                     color: 'white',
-                                    minHeight: '120px',
+                                    minHeight: '200px',
                                     fontFamily: 'monospace',
                                     fontSize: '1rem',
-                                    maxHeight: '150px'
+                                    resize: 'vertical'
                                 }}
                             />
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                                <div style={{ flex: '1 1 200px' }}>
+                            <div className="flex-stack-mobile" style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                                <div className="w-full-mobile" style={{ flex: '1 1 200px' }}>
                                     <label style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.3rem', display: 'block' }}>Start Offset (Optional)</label>
                                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                         <input
@@ -1328,7 +1251,7 @@ function App() {
                                         </div>
                                     </div>
                                 </div>
-                                <div style={{ flex: '1 1 200px' }}>
+                                <div className="w-full-mobile" style={{ flex: '1 1 200px' }}>
                                     <label style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.3rem', display: 'block' }}>Interval (Optional)</label>
                                     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                         <input
@@ -1372,8 +1295,8 @@ function App() {
                     {/* Advanced Params - Only for Recover */}
                     {/* Advanced Params - Only for Recover */}
                     {advAction === 'recover' && (
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-                            <div style={{ flex: '1 1 200px' }}>
+                        <div className="flex-stack-mobile" style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+                            <div className="w-full-mobile" style={{ flex: '1 1 200px' }}>
                                 <label style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.3rem', display: 'block' }}>Start Offset (Required)</label>
                                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                     <input
@@ -1388,7 +1311,8 @@ function App() {
                                             border: '1px solid #475569',
                                             background: '#0f172a',
                                             color: 'white',
-                                            appearance: 'textfield'
+                                            appearance: 'textfield',
+                                            minWidth: '0'
                                         }}
                                     />
                                     <div style={{ position: 'absolute', right: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -1407,7 +1331,7 @@ function App() {
                                     </div>
                                 </div>
                             </div>
-                            <div style={{ flex: '1 1 200px' }}>
+                            <div className="w-full-mobile" style={{ flex: '1 1 200px' }}>
                                 <label style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.3rem', display: 'block' }}>Interval (Required)</label>
                                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                                     <input
@@ -1422,7 +1346,8 @@ function App() {
                                             border: '1px solid #475569',
                                             background: '#0f172a',
                                             color: 'white',
-                                            appearance: 'textfield'
+                                            appearance: 'textfield',
+                                            minWidth: '0'
                                         }}
                                     />
                                     <div style={{ position: 'absolute', right: '4px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
