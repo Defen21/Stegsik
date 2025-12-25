@@ -49,6 +49,6 @@ A custom, high-security steganographic method.
 
 ## 🔒 Security Features
 - **Force HTTPS**: All traffic is encrypted via SSL/TLS (Certbot).
-- **Public API Blocked**: Direct access to API ports (8000/3000) is blocked by firewall and Docker binding.
+- **Public API Blocked**: Direct access to API ports is blocked by firewall and Docker binding.
 - **Docs Disabled**: Swagger UI (`/docs`) is disabled in production to prevent information disclosure.
 - **Path Protection**: Frontend automatically redirects unknown paths (`404`) to the root to prevent enumeration.
